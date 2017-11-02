@@ -3,24 +3,16 @@
     <div class="dao-view-header">
       <div class="header-top">
         <div class="header-img">
-          <span class="icon"><svg><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#color-icon_tomcat"></use></svg></span>
+          <span class="icon"><svg><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="http://localhost:8080/management/serviceset-list#icon_container-small"></use></svg></span>
         </div>
         <div class="header-content">
           <div class="content-top">
-            <div class="header-name">公有云CDN</div>
+            <div class="header-name">CVM</div>
             <div>
-              <!-- button class="dao-btn">申请配额</button -->
-              <button class="dao-btn blue" v-on:click="toEdit()">创建记录</button>
+              <button class="dao-btn blue" v-on:click="toEdit()">创建实例</button>
             </div>
           </div>
           <div class="content-bottom">
-            <!-- div class="quota-item">
-              个数：
-              <div class="dao-progress">
-                <div class="dao-progress-usage" style="width: 25%; background-size: 400% 100%;"></div>
-              </div>
-              {{items.length}}/10个
-            </div -->
           </div>
         </div>
       </div>
@@ -33,13 +25,19 @@
             <svg>
               <use xlink:href="#icon_stack-small"></use>
             </svg>
-            <span>域名</span>
+            <span>主机名</span>
           </th>
           <th>
             <svg>
               <use xlink:href="#icon_stack-small"></use>
             </svg>
-            <span>CNAME</span>
+            <span>域名</span>
+          </th>
+          <th>
+            <svg>
+              <use xlink:href="#icon_location"></use>
+            </svg>
+            <span>IP</span>
           </th>
           <th>
             <svg>
@@ -49,15 +47,9 @@
           </th>
           <th>
             <svg>
-              <use xlink:href="#icon_user"></use>
+              <use xlink:href="#icon_file-text"></use>
             </svg>
-            <span>创建者</span>
-          </th>
-          <th class="time">
-            <svg>
-              <use xlink:href="#icon_calendar"></use>
-            </svg>
-            <span>创建时间</span>
+            <span>描述</span>
           </th>
           <th class="operation">
 
@@ -66,20 +58,20 @@
         </thead>
         <tbody>
         <tr v-for="item in items.slice(pagesize*(page - 1),page*pagesize)">
-          <td>
+          <td class="name">
+            <div class="item-major">{{item.name}}</div>
+          </td>
+          <td class="host">
             <div class="item-major">{{item.host}}</div>
           </td>
-          <td>
-            <div class="item-major">{{item.cname}}</div>
+          <td class="ip">
+            <div class="item-major">{{item.IP}}</div>
           </td>
-          <td>
+          <td class="status">
             <div class="item-major">{{getStatus(item)}}</div>
           </td>
-          <td>{{item.creator}}</td>
-          <td class="time">
-            <div class="item-major">
-              {{time(item.created_at)}}
-            </div>
+          <td class="description">
+            <div class="item-major">{{item.description}}</div>
           </td>
           <td class="operation">
             <div class="dao-btn-group">
@@ -95,14 +87,13 @@
                   <svg class="icon"><use xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="#icon_down-arrow"></use></svg>
                 </div>
                 <dao-dropdown-menu slot="list">
+                  <dao-dropdown-item :is-divided="true"></dao-dropdown-item>
                   <dao-dropdown-item @click="cdnOnline(item.id)" v-show = lineStatus(item)>启动</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true" v-show = lineStatus(item)></dao-dropdown-item>
                   <dao-dropdown-item @click="cdnOffline(item.id)" v-show = offStatus(item)>停止</dao-dropdown-item>
-                  <dao-dropdown-item :is-divided="true" v-show = lineStatus(item)></dao-dropdown-item>
-                  <dao-dropdown-item @click="cdnRefresh(item.id)" v-show = lineStatus(item)>刷新</dao-dropdown-item>
-                  <dao-dropdown-item :is-divided="true"></dao-dropdown-item>
-                  <dao-dropdown-item @click="toEdit(item.id)">编辑</dao-dropdown-item>
-                  <dao-dropdown-item :is-divided="true"></dao-dropdown-item>
+                  <dao-dropdown-item :is-divided="true" v-show = offStatus(item)></dao-dropdown-item>
+                  <dao-dropdown-item @click="toEdit(item.id)">重置密码</dao-dropdown-item>
+                  <dao-dropdown-item :is-divided="true" v-show = deleteStatus(item)></dao-dropdown-item>
                   <dao-dropdown-item @click="deleted(item.id)" v-show = deleteStatus(item)>删除</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true"></dao-dropdown-item>
                 </dao-dropdown-menu>
@@ -112,6 +103,8 @@
         </tr>
         </tbody>
       </table>
+      <empty-state v-show ="!items.length" title-data="暂无数据" id="empty">
+      </empty-state>
       <div class="dao-table-page" v-if="items.length>0">
         <div class="dao-btn-group">
           <button class="dao-btn dao-icon ghost" @click="prev" :disabled="page<=1">
@@ -135,13 +128,19 @@
 
 <script>
   export default {
-    name: 'cdn_list',
+    name: 'cvm_list',
     data() {
       return {
         msg: 'hello',
         page: 1,
         pagesize: 5,
-        items: [],
+        items: [{
+          name: '大通',
+          host: '198.08.67.86',
+          build_status: 'ONLINE',
+          IP: '198.08.67.86',
+          description: 'good'
+        }],
         status: ''
       }
     },
@@ -157,7 +156,7 @@
     },
     methods: {
       toEdit: function (id) {
-        this.$router.push('/cdnedit/' + id)
+        this.$router.push('/cvmcreate/' + id)
       },
       deleted: function (id) {
         var self = this
@@ -232,10 +231,6 @@
         }
         return status
       },
-      time: function (itme) {
-        var times = new Date(itme)
-        return times.getFullYear() + '-' + times.getMonth() + '-' + times.getDate() + ' ' + times.getHours() + ':' + times.getMinutes()
-      },
       cdnOnline: function (id) {
         var self = this
         this.$axios.get(process.env.BASE_URL + '/online.json?id=' + id)
@@ -254,19 +249,6 @@
         this.$axios.get(process.env.BASE_URL + '/offline.json?id=' + id)
         .then(function (res) {
           self.$noty.success('停止成功')
-        })
-        .catch(function (error) {
-          if (error.response) {
-            console.log(error.response.data)
-            self.$noty.error(error.response.data.message)
-          }
-        })
-      },
-      cdnRefresh: function (id) {
-        var self = this
-        this.$axios.get(process.env.BASE_URL + '/refresh.json?id=' + id)
-        .then(function (res) {
-          self.$noty.success('刷新成功')
         })
         .catch(function (error) {
           if (error.response) {
