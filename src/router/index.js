@@ -1,7 +1,9 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import CvmList from '@/components/CvmList'
-import CvmCreate from '@/components/CvmCreate'
+import CvmList from '@/components/cvm/CvmList'
+import CvmCreate from '@/components/cvm/CvmCreate'
+import CdnList from '@/components/cdn/CdnList'
+import CdnEdit from '@/components/cdn/CdnEdit'
 
 Vue.use(Router)
 
@@ -14,5 +16,13 @@ export default new Router({
     path: '/cvmcreate/:id',
     name: 'CvmCreate',
     component: CvmCreate
+  }, {
+    path: '/cdnlist',
+    name: 'CdnList',
+    component: CdnList
+  }, {
+    path: '/cdnedit/:id',
+    name: 'CdnEdit',
+    component: CdnEdit
   }]
 })

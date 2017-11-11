@@ -10,7 +10,6 @@ import axios from 'axios'
 import VueNoty from 'vuejs-noty'
 import 'vuejs-noty/dist/vuejs-noty.css';
 
-import 'dao-style-vue/dao-style.js'
 import 'dao-style-vue/styles/dao-style.css'
 import iView from 'iview';
 import 'iview/dist/styles/iview.css'
