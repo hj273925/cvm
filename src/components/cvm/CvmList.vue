@@ -94,9 +94,11 @@
                 </div>
                 <dao-dropdown-menu slot="list">
                   <dao-dropdown-item :is-divided="true"></dao-dropdown-item>
-                  <dao-dropdown-item @click="cvmOnline(item)" v-show = lineStatus(item)>启动</dao-dropdown-item>
+                  <dao-dropdown-item @click="cvmOnline(item)">启动</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true" v-show = lineStatus(item)></dao-dropdown-item>
-                  <dao-dropdown-item @click="cvmOffline(item)" v-show = offStatus(item)>关闭</dao-dropdown-item>
+                  <dao-dropdown-item @click="cvmOffline(item)">关闭</dao-dropdown-item>
+                  <dao-dropdown-item :is-divided="true" v-show = offStatus(item)></dao-dropdown-item>
+                  <dao-dropdown-item @click="cvmReline(item)">重启</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true" v-show = offStatus(item)></dao-dropdown-item>
                   <dao-dropdown-item @click="editPassword(item)">重置密码</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true" v-show = deleteStatus(item)></dao-dropdown-item>
@@ -162,6 +164,7 @@
         password: '',
         passwordError: '',
         passwordMsg: '',
+        data: {},
         config: {
           type: 'normal',
           title: '修改密码',
@@ -176,7 +179,7 @@
     },
     created() {
       var self = this
-      this.$axios.get('http://10.100.54.86:8081/plan/getInstanceList')
+      this.$axios.get('http://10.100.54.146:8081/plan/getInstanceList')
         .then(function (res) {
           self.items = res.data.body
         })
@@ -189,37 +192,39 @@
         this.$router.push('/cvmcreate/' + id)
       },
       getStatus: function (item) {
-        let status = ''
-        switch (item) {
-          case 'ONLINE':
-            status = '已启动'
-            break
-          case 'OFFLINE':
-            status = '已关闭'
-            break
-          case 'INIT':
-            status = '初始化'
-            break
-          case 'DELETING':
-            status = '删除中'
-            break
-          case 'DELETED':
-            status = '已删除'
-            break
-          case 'SUBMIT_SUCCESS':
-            status = '审批成功'
-            break
-          case 'SYBMIT_FAILED':
-            status = '审批失败'
-            break
-          case 'DEPLOY_SUCCESS':
-            status = '部署成功'
-            break
-          case 'DEPLOY_FAILED':
-            status = '部署失败'
-            break
-        }
-        return status
+//        let status = ''
+//        switch (item) {
+//          case 'ONLINE':
+//            status = '已启动'
+//            break
+//          case 'OFFLINE':
+//            status = '已关闭'
+//            break
+//          case 'INIT':
+//            status = '初始化'
+//            break
+//          case 'DELETING':
+//            status = '删除中'
+//            break
+//          case 'DELETED':
+//            status = '已删除'
+//            break
+//          case 'SUBMIT_SUCCESS':
+//            status = '审批成功'
+//            break
+//          case 'SYBMIT_FAILED':
+//            status = '审批失败'
+//            break
+//          case 'DEPLOY_SUCCESS':
+//            status = '部署成功'
+//            break
+//          case 'DEPLOY_FAILED':
+//            status = '部署失败'
+//            break
+//        }
+//        return status
+        console.log(item)
+        return item
       },
       lineStatus: function (item) {
         let status = ''
@@ -248,11 +253,16 @@
         }
         return status
       },
-      cvmOnline: function (id) {
+      cvmOnline: function (data) {
         var self = this
-        this.$axios.get(process.env.BASE_URL + '/online.json?id=' + id)
+        this.$axios.post('http://10.100.54.146:8081/plan/startInstances', {
+          Region: data.Region,
+          InstanceId: data.InstanceId,
+          id: data.id
+        })
           .then(function (res) {
             self.$noty.success('启动成功')
+            self.items = res.data.body
           })
           .catch(function (error) {
             if (error.response) {
@@ -261,15 +271,33 @@
             }
           })
       },
+      cvmReline: function (data) {
+        var self = this
+        this.$axios.post('http://10.100.54.146:8081/plan/rebootInstances', {
+          Region: data.Region,
+          InstanceId: data.InstanceId,
+          id: data.id
+        })
+          .then(function (res) {
+            self.$noty.success('重启成功')
+            self.items = res.data.body
+          })
+          .catch(function (error) {
+            if (error.response) {
+              self.$noty.error(error.response.data.message)
+            }
+          })
+      },
       cvmOffline: function (data) {
         var self = this
-        this.$axios.post('http://10.100.54.86:8081/cvm/stopInstances', {
+        this.$axios.post('http://10.100.54.146:8081/plan/stopInstances', {
           Region: data.Region,
           InstanceId: data.InstanceId,
           id: data.id
         })
         .then(function (res) {
           self.$noty.success('停止成功')
+          self.items = res.data.body
         })
         .catch(function (error) {
           if (error.response) {
@@ -279,14 +307,14 @@
       },
       cvmDeleted: function (data) {
         var self = this
-        this.$axios.post('http://10.100.54.86:8081/plan/terminateInstances', {
+        this.$axios.post('http://10.100.54.146:8081/plan/terminateInstances', {
           Region: data.Region,
           InstanceId: data.InstanceId,
           id: data.id
         })
           .then(function (res) {
             self.$noty.success('删除成功')
-            self.created()
+            self.items = res.data.body
           })
           .catch(function (error) {
             if (error.response) {
@@ -296,9 +324,25 @@
       },
       editPassword: function (data) {
         this.visible = true
+        this.data = data
       },
       handleConfirm() {
         console.log(this.password)
+        var self = this
+        this.$axios.post('http://10.100.54.146:8081/plan/setResetInstancesPassword ', {
+          Region: self.data.Region,
+          InstanceId: self.data.InstanceId,
+          id: self.data.id,
+          Password: self.password
+        })
+          .then(function (res) {
+            self.$noty.success('密码修改成功')
+          })
+          .catch(function (error) {
+            if (error.response) {
+              self.$noty.error(error.response.data.message)
+            }
+          })
       },
       prev: function () {
         this.page -= 1

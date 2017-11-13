@@ -349,26 +349,26 @@ export default {
   },
   created() {
     var self = this
-    this.$axios.get('http://10.100.54.86:8081/cvm/describeRegions')
+    this.$axios.get('http://10.100.54.146:8081/cvm/describeRegions')
       .then(function (res) {
         self.regions = res.data.body
         self.record.Region = res.data.body[0].Region
       })
       .then(function (res) {
-        return self.$axios.get('http://10.100.54.86:8081/cvm/getImageList/' + self.record.Region)
+        return self.$axios.get('http://10.100.54.146:8081/cvm/getImageList/' + self.record.Region)
       })
       .then(function (res) {
         self.systems = res.data.body
       })
       .then(function (res) {
-        return self.$axios.get('http://10.100.54.86:8081/cvm/DescribeZones/' + self.record.Region)
+        return self.$axios.get('http://10.100.54.146:8081/cvm/DescribeZones/' + self.record.Region)
       })
       .then(function (res) {
         self.zones = res.data.body
         self.record.Zone = res.data.body[0].Zone
       })
       .then(function (res) {
-        return self.$axios.get('http://10.100.54.86:8081/plan/getPlans/' + self.record.Zone)
+        return self.$axios.get('http://10.100.54.146:8081/plan/getPlans/' + self.record.Zone)
       })
       .then(function (res) {
         self.tiers = res.data.body
@@ -391,7 +391,7 @@ export default {
     // 选择地域
     selectRegion: function (item) {
       var self = this
-      this.$axios.get('http://10.100.54.86:8081/cvm/DescribeZones/' + item)
+      this.$axios.get('http://10.100.54.146:8081/cvm/DescribeZones/' + item)
         .then(function (res) {
           self.zones = res.data.body
         })
@@ -402,7 +402,7 @@ export default {
     // 选择区域
     selectZone: function (item) {
       var self = this
-      this.$axios.get('http://10.100.54.86:8081/plan/getPlans/' + item)
+      this.$axios.get('http://10.100.54.146:8081/plan/getPlans/' + item)
         .then(function (res) {
           self.tiers = res.data.body
         })
@@ -526,13 +526,14 @@ export default {
     // 提交数据
     save: function () {
       var self = this
-      this.$axios.post('http://10.100.54.86:8081/cvm/createInstance', {
+      this.$axios.post('http://10.100.54.146:8081/cvm/createInstance', {
         ...this.record
       })
         .then(function (res) {
           self.dwonModel = self.steps[++self.index]
         })
         .catch(function (res) {
+          console.log(res)
           self.$noty.error('创建失败！')
         })
     },

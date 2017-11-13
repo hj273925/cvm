@@ -27,7 +27,7 @@ Vue.use(VueNoty, {
   layout: 'topCenter',
 });
 Vue.prototype.$axios = axios.create({
-  timeout: 5000,
+  timeout: 10000,
   withCredentials: true
 })
 
