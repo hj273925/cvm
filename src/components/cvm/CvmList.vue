@@ -16,6 +16,7 @@
             <div class="header-name">CVM</div>
             <div>
               <button class="dao-btn blue" v-on:click="toEdit()">创建实例</button>
+              <button class="dao-btn blue" v-on:click="toRefresh(items.slice(pagesize*(page - 1),page*pagesize))">刷新</button>
             </div>
           </div>
           <div class="content-bottom">
@@ -63,12 +64,12 @@
         </tr>
         </thead>
         <tbody>
-        <tr v-for="item in items.slice(pagesize*(page - 1),page*pagesize)">
+        <tr v-for="item,index in items.slice(pagesize*(page - 1),page*pagesize)">
           <td class="name">
             <div class="item-major">{{item.InstanceName}}</div>
           </td>
           <td class="ip">
-            <div class="item-major">{{item.IP}}</div>
+            <div class="item-major" v-for="item in item.IP">{{item}}</div>
           </td>
           <td class="host">
             <div class="item-major">{{item.zone_name}}</div>
@@ -83,7 +84,7 @@
             <div class="dao-btn-group">
               <button
                 class="dao-btn ghost">
-                查看详情
+                操作
               </button>
               <dao-dropdown
                 trigger="click"
@@ -94,15 +95,15 @@
                 </div>
                 <dao-dropdown-menu slot="list">
                   <dao-dropdown-item :is-divided="true"></dao-dropdown-item>
-                  <dao-dropdown-item @click="cvmOnline(item)">启动</dao-dropdown-item>
+                  <dao-dropdown-item @click="cvmOnline(item,index)" v-show = lineStatus(item)>启动</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true" v-show = lineStatus(item)></dao-dropdown-item>
-                  <dao-dropdown-item @click="cvmOffline(item)">关闭</dao-dropdown-item>
+                  <dao-dropdown-item @click="cvmOffline(item,index)" v-show = lineStatus(item)>停止</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true" v-show = offStatus(item)></dao-dropdown-item>
-                  <dao-dropdown-item @click="cvmReline(item)">重启</dao-dropdown-item>
+                  <dao-dropdown-item @click="cvmReline(item,index)" v-show = offStatus(item)>重启</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true" v-show = offStatus(item)></dao-dropdown-item>
-                  <dao-dropdown-item @click="editPassword(item)">重置密码</dao-dropdown-item>
+                  <dao-dropdown-item @click="editPassword(item)" v-show = offStatus(item)>重置密码</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true" v-show = deleteStatus(item)></dao-dropdown-item>
-                  <dao-dropdown-item @click="cvmDeleted(item)" v-show = deleteStatus(item)>删除</dao-dropdown-item>
+                  <dao-dropdown-item @click="cvmDeleted(item)">删除</dao-dropdown-item>
                   <dao-dropdown-item :is-divided="true"></dao-dropdown-item>
                 </dao-dropdown-menu>
               </dao-dropdown>
@@ -179,7 +180,7 @@
     },
     created() {
       var self = this
-      this.$axios.get('http://10.100.54.146:8081/plan/getInstanceList')
+      this.$axios.get(process.env.BASE_URL + '/plan/getInstanceList')
         .then(function (res) {
           self.items = res.data.body
         })
@@ -191,77 +192,21 @@
       toEdit: function (id) {
         this.$router.push('/cvmcreate/' + id)
       },
-      getStatus: function (item) {
-//        let status = ''
-//        switch (item) {
-//          case 'ONLINE':
-//            status = '已启动'
-//            break
-//          case 'OFFLINE':
-//            status = '已关闭'
-//            break
-//          case 'INIT':
-//            status = '初始化'
-//            break
-//          case 'DELETING':
-//            status = '删除中'
-//            break
-//          case 'DELETED':
-//            status = '已删除'
-//            break
-//          case 'SUBMIT_SUCCESS':
-//            status = '审批成功'
-//            break
-//          case 'SYBMIT_FAILED':
-//            status = '审批失败'
-//            break
-//          case 'DEPLOY_SUCCESS':
-//            status = '部署成功'
-//            break
-//          case 'DEPLOY_FAILED':
-//            status = '部署失败'
-//            break
-//        }
-//        return status
-        console.log(item)
-        return item
-      },
-      lineStatus: function (item) {
-        let status = ''
-        if ((item.build_status || item.run_status) === 'OFFLINE') {
-          status = true
-        } else {
-          status = false
+      toRefresh: function (items) {
+        var reqParams = '{'
+        for (var i in items) {
+          if (items[i].InstanceId !== undefined) {
+            reqParams += '"' + items[i].id + '":"' + items[i].InstanceId + '",'
+          }
         }
-        return status
-      },
-      offStatus: function (item) {
-        let status = ''
-        if ((item.build_status || item.run_status) === 'ONLINE') {
-          status = true
-        } else {
-          status = false
-        }
-        return status
-      },
-      deleteStatus: function (item) {
-        let status = ''
-        if ((item.build_status || item.run_status) === 'ONLINE') {
-          status = false
-        } else {
-          status = true
-        }
-        return status
-      },
-      cvmOnline: function (data) {
+        reqParams = reqParams.substring(0, reqParams.length - 1) + '}'
         var self = this
-        this.$axios.post('http://10.100.54.146:8081/plan/startInstances', {
-          Region: data.Region,
-          InstanceId: data.InstanceId,
-          id: data.id
+        this.$axios.post(process.env.BASE_URL + '/plan/getRefreshInstances', {
+          Region: items[0].Region,
+          instances: reqParams
         })
           .then(function (res) {
-            self.$noty.success('启动成功')
+            self.$noty.success('操作成功')
             self.items = res.data.body
           })
           .catch(function (error) {
@@ -271,32 +216,121 @@
             }
           })
       },
-      cvmReline: function (data) {
+      getStatus: function (item) {
+        let status = ''
+        switch (item) {
+          case 'PENDING':
+            status = '准备中'
+            break
+          case 'RUNNING':
+            status = '已启动'
+            break
+          case 'STOPPED':
+            status = '已停止'
+            break
+          case 'REBOOTING':
+            status = '重启中'
+            break
+          case 'STARTING':
+            status = '启动中'
+            break
+          case 'STOPPING':
+            status = '停止中'
+            break
+          case 'FAILED':
+            status = '部署失败'
+            break
+        }
+        return status
+      },
+      lineStatus: function (item) {
+        let status = ''
+        if ((item.status) === 'failed') {
+          status = false
+        } else {
+          status = true
+        }
+        return status
+      },
+      offStatus: function (item) {
+        let status = ''
+        if ((item.status) === 'failed') {
+          status = false
+        } else {
+          status = true
+        }
+        return status
+      },
+      deleteStatus: function (item) {
+        let status = ''
+        if ((item.status) === 'failed') {
+          status = false
+        } else {
+          status = true
+        }
+        return status
+      },
+      cvmOnline: function (data, index) {
         var self = this
-        this.$axios.post('http://10.100.54.146:8081/plan/rebootInstances', {
+        if ((data.status) !== 'STOPPED') {
+          self.$noty.error('只有状态为“停止”才能启动')
+          return
+        }
+        this.$axios.post(process.env.BASE_URL + '/plan/startInstances', {
           Region: data.Region,
           InstanceId: data.InstanceId,
           id: data.id
         })
           .then(function (res) {
-            self.$noty.success('重启成功')
+            if (res.data.code === 500) {
+              self.$noty.success(res.data.body.msg)
+              return
+            }
+            self.$noty.success('操作成功')
             self.items = res.data.body
           })
           .catch(function (error) {
+            if (error.response) {
+              console.log(error.response.data)
+              self.$noty.error(error.response.data.message)
+            }
+          })
+      },
+      cvmReline: function (data, index) {
+        var self = this
+        if ((data.status) !== 'RUNNING') {
+          self.$noty.error('之有状态“已启动”才能重启')
+          return
+        }
+        this.$axios.post(process.env.BASE_URL + '/plan/rebootInstances', {
+          Region: data.Region,
+          InstanceId: data.InstanceId,
+          id: data.id
+        })
+          .then(function (res) {
+            self.$noty.success('操作成功')
+            self.items = res.data.body
+          })
+          .catch(function (error) {
+            console.log(error)
             if (error.response) {
               self.$noty.error(error.response.data.message)
             }
           })
       },
-      cvmOffline: function (data) {
+      cvmOffline: function (data, index) {
         var self = this
-        this.$axios.post('http://10.100.54.146:8081/plan/stopInstances', {
+        if ((data.status) !== 'RUNNING') {
+          self.$noty.error('之有状态“已启动”才能停止')
+          return
+        }
+        this.$axios.post(process.env.BASE_URL + '/plan/stopInstances', {
           Region: data.Region,
           InstanceId: data.InstanceId,
           id: data.id
         })
         .then(function (res) {
-          self.$noty.success('停止成功')
+          self.$noty.success('操作成功')
           self.items = res.data.body
         })
         .catch(function (error) {
@@ -307,13 +341,17 @@
       },
       cvmDeleted: function (data) {
         var self = this
-        this.$axios.post('http://10.100.54.146:8081/plan/terminateInstances', {
+        if ((data.status) !== 'STOPPED' && (data.status) !== 'RUNNING' && (data.status) !== 'FAILED') {
+          self.$noty.error('之有状态为“停止”、“已启动”或者“部署失败”才能删除')
+          return
+        }
+        this.$axios.post(process.env.BASE_URL + '/plan/terminateInstances', {
           Region: data.Region,
-          InstanceId: data.InstanceId,
+          InstanceId: data.InstanceId || 'failed',
           id: data.id
         })
           .then(function (res) {
-            self.$noty.success('删除成功')
+            self.$noty.success('操作成功')
             self.items = res.data.body
           })
           .catch(function (error) {
@@ -323,20 +361,25 @@
           })
       },
       editPassword: function (data) {
+        var self = this
+        if ((data.status) !== 'STOPPED') {
+          self.$noty.error('必须先停止，才能修改密码')
+          return
+        }
         this.visible = true
         this.data = data
       },
       handleConfirm() {
         console.log(this.password)
         var self = this
-        this.$axios.post('http://10.100.54.146:8081/plan/setResetInstancesPassword ', {
+        this.$axios.post(process.env.BASE_URL + '/plan/setResetInstancesPassword ', {
           Region: self.data.Region,
           InstanceId: self.data.InstanceId,
           id: self.data.id,
           Password: self.password
         })
           .then(function (res) {
-            self.$noty.success('密码修改成功')
+            self.$noty.success('操作成功')
           })
           .catch(function (error) {
             if (error.response) {

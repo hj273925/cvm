@@ -134,7 +134,7 @@
               <div class="dao-setting-label">带宽</div>
               <div class="dao-setting-content">
                 <dao-input  type="text"
-                             v-model="bandWidth"
+                             v-model="record.bandWidth"
                              icon-inside
                              :status = 'bandwidthError'
                              :message = 'bandwidthMsg'></dao-input>
@@ -164,6 +164,19 @@
                              :status = 'passwordError'
                              :message = 'passwordMsg'
                              @blur = 'checkPassWord(record.Password)'></dao-input>
+              </div>
+            </div>
+          </div>
+          <div class="dao-setting-section">
+            <div class="dao-setting-item">
+              <div class="dao-setting-label">描述</div>
+              <div class="dao-setting-content">
+                <textarea rows="3" style=" width:287px " type="text"
+                             v-model="record.Description"
+                             icon-inside
+                             :status = 'descriptionError'
+                             :message = 'descriptionMsg'
+                             @blur = 'checkPassWord(record.Description)'></textarea>
               </div>
             </div>
           </div>
@@ -311,6 +324,8 @@ export default {
       passwordError: '',
       passwordMsg: '',
       bandWidth: '',
+      descriptionError: '',
+      descriptionMsg: '',
       record: {
         Region: '',
         Zone: '',
@@ -319,7 +334,8 @@ export default {
         InstanceName: '',
         DiskSize: '',
         Password: '',
-        InstanceCount: '1'
+        InstanceCount: '1',
+        Description: ''
       }
     }
   },
@@ -349,26 +365,26 @@ export default {
   },
   created() {
     var self = this
-    this.$axios.get('http://10.100.54.146:8081/cvm/describeRegions')
+    this.$axios.get(process.env.BASE_URL + '/cvm/describeRegions')
       .then(function (res) {
         self.regions = res.data.body
         self.record.Region = res.data.body[0].Region
       })
       .then(function (res) {
-        return self.$axios.get('http://10.100.54.146:8081/cvm/getImageList/' + self.record.Region)
+        return self.$axios.get(process.env.BASE_URL + '/cvm/getImageList/' + self.record.Region)
       })
       .then(function (res) {
         self.systems = res.data.body
       })
       .then(function (res) {
-        return self.$axios.get('http://10.100.54.146:8081/cvm/DescribeZones/' + self.record.Region)
+        return self.$axios.get(process.env.BASE_URL + '/cvm/DescribeZones/' + self.record.Region)
       })
       .then(function (res) {
         self.zones = res.data.body
         self.record.Zone = res.data.body[0].Zone
       })
       .then(function (res) {
-        return self.$axios.get('http://10.100.54.146:8081/plan/getPlans/' + self.record.Zone)
+        return self.$axios.get(process.env.BASE_URL + '/plan/getPlans/' + self.record.Zone)
       })
       .then(function (res) {
         self.tiers = res.data.body
@@ -391,7 +407,7 @@ export default {
     // 选择地域
     selectRegion: function (item) {
       var self = this
-      this.$axios.get('http://10.100.54.146:8081/cvm/DescribeZones/' + item)
+      this.$axios.get(process.env.BASE_URL + '/cvm/DescribeZones/' + item)
         .then(function (res) {
           self.zones = res.data.body
         })
@@ -402,7 +418,7 @@ export default {
     // 选择区域
     selectZone: function (item) {
       var self = this
-      this.$axios.get('http://10.100.54.146:8081/plan/getPlans/' + item)
+      this.$axios.get(process.env.BASE_URL + '/plan/getPlans/' + item)
         .then(function (res) {
           self.tiers = res.data.body
         })
@@ -458,6 +474,9 @@ export default {
           break
         case 'Password':
           status = '密码'
+          break
+        case 'Description':
+          status = '描述'
           break
       }
       return status
@@ -526,7 +545,7 @@ export default {
     // 提交数据
     save: function () {
       var self = this
-      this.$axios.post('http://10.100.54.146:8081/cvm/createInstance', {
+      this.$axios.post(process.env.BASE_URL + '/cvm/createInstance', {
         ...this.record
       })
         .then(function (res) {
